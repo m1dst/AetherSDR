@@ -5,11 +5,13 @@ name: Docs
 # (workflow_dispatch) on main redeploys without a content change.
 #
 # It also typesets the printable PDF manual (tools/docs/build_pdf.py: Pandoc
-# + Typst). On a pull request the PDF is a render check and a downloadable
-# artifact; on main it is deployed with the site as
-# https://docs.aethersdr.com/AetherSDR-Manual.pdf; and when a release is
-# published it is attached to that release as AetherSDR-Manual-<tag>.pdf,
-# with a detached signature (.pdf.asc) made with the release key.
+# + Typst). On a pull request and on main the PDF is a render check, and on
+# a pull request also a downloadable artifact. When a release is published it
+# is attached to that release as AetherSDR-Manual-<tag>.pdf, with a detached
+# signature (.pdf.asc) made with the release key. It is not deployed with the
+# site, being larger than a Cloudflare Pages file may be:
+# https://docs.aethersdr.com/AetherSDR-Manual.pdf redirects to the stable
+# release's copy (docusaurus.config.js writes the _redirects file).
 #
 # The build is the link check: docusaurus.config.js sets onBrokenLinks,
 # onBrokenAnchors and onBrokenMarkdownLinks to 'throw', so a page that links
@@ -109,8 +111,7 @@ jobs:
           bin/pandoc --version | head -1
           bin/typst --version
 
-      # After the site build, which empties build/: the PDF lands in the
-      # site's root and is deployed with it on main.
+      # Outside the site's build/, so the deploy does not carry it.
       - name: Build PDF manual
         working-directory: .
         env:
@@ -123,18 +124,18 @@ jobs:
             version="${GITHUB_REF_NAME} @ ${HEAD_SHA::9}"
           fi
           python3 tools/docs/build_pdf.py --version "$version" \
-            --output docs/user/build/AetherSDR-Manual.pdf
+            --output "${RUNNER_TEMP}/AetherSDR-Manual.pdf"
 
       - name: Upload PDF manual
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: AetherSDR-Manual
-          path: docs/user/build/AetherSDR-Manual.pdf
+          path: ${{ runner.temp }}/AetherSDR-Manual.pdf
           if-no-files-found: error
           retention-days: 14
 
-      # The deploy job below takes the finished site, PDF included, from here.
+      # The deploy job below takes the finished site from here.
       - name: Upload site
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

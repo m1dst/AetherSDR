@@ -131,8 +131,11 @@ font in `tools/docs/pdf/fonts/`). It needs `node`, `pandoc` 3.6 or newer and
 python3 tools/docs/build_pdf.py --output AetherSDR-Manual.pdf
 ```
 
-CI deploys it with the site as `/AetherSDR-Manual.pdf`, and attaches it to
-every release with a detached signature made with the release key.
+CI attaches it to every release with a detached signature made with the
+release key. It is too large for Cloudflare Pages (25 MiB a file), so the site
+does not carry it: `/AetherSDR-Manual.pdf` redirects to the stable release's
+copy, through the `_redirects` file `docusaurus.config.js` writes after the
+build.
 
 ## Log Analyzer
 
